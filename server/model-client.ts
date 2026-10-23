@@ -40,6 +40,20 @@ function parseModelJsonContent(raw: string): unknown {
   }
 }
 
+function providerResponseFormat(value: unknown): unknown {
+  if (modelProvider !== 'openrouter' || !value || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(providerResponseFormat);
+  }
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== 'maxItems')
+      .map(([key, child]) => [key, providerResponseFormat(child)]),
+  );
+}
+
 /**
  * One JSON completion. Prefer response_format json_schema when the provider
  * supports it (llama.cpp compiles it into a grammar); Zod remains the runtime
@@ -68,7 +82,7 @@ export async function completeJson<T>(options: {
       messages: [{ role: 'user', content }],
       max_tokens: options.maxTokens,
       temperature: options.temperature,
-      response_format: options.responseFormat,
+      response_format: providerResponseFormat(options.responseFormat),
     }),
     signal: options.abortSignal,
   });
