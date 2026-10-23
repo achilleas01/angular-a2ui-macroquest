@@ -125,6 +125,118 @@ const macroChartReady = (frame: Frame) =>
     );
   });
 
+test('A2UI meal review renders its apply button and updates trusted state', async ({ page }) => {
+  let applied = false;
+  const surfaceId = 'catalog-regression';
+  await page.route('**/api/copilotkit/**', async (route) => {
+    const request = route.request();
+    if (request.method() !== 'POST' || !request.url().includes('/run')) {
+      await route.continue();
+      return;
+    }
+    const input = request.postDataJSON();
+    const events: Record<string, unknown>[] = [
+      { type: 'RUN_STARTED', threadId: input.threadId, runId: input.runId },
+    ];
+    if (!applied && input.forwardedProps?.a2uiAction) {
+      expect(input.forwardedProps.a2uiAction.userAction.name).toBe('applyMealDraft');
+      applied = true;
+      events.push(
+        { type: 'TOOL_CALL_START', toolCallId: 'apply-review', toolCallName: 'logMealDraft' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'apply-review', delta: JSON.stringify({
+          title: 'Catalog review bowl',
+          items: [{
+            name: 'Rice', servingLabel: 'cup', servings: 1,
+            calories: 200, protein: 4, carbs: 44, fat: 0, confidence: 0.8,
+          }],
+        }) },
+        { type: 'TOOL_CALL_END', toolCallId: 'apply-review' },
+      );
+    } else if (!applied) {
+      events.push({
+        type: 'ACTIVITY_SNAPSHOT', messageId: 'catalog-review', activityType: 'a2ui-surface',
+        content: { a2ui_operations: [
+          { createSurface: {
+            surfaceId, catalogId: 'https://a2ui.org/specification/v0_9/basic_catalog.json',
+          } },
+          { updateComponents: { surfaceId, components: [
+            { id: 'root', component: 'Column', children: ['title', 'apply'] },
+            { id: 'title', component: 'Text', text: 'Catalog review bowl' },
+            { id: 'apply', component: 'Button', child: 'label', variant: 'primary',
+              action: { event: { name: 'applyMealDraft', context: { source: 'a2ui-review' } } } },
+            { id: 'label', component: 'Text', text: 'Apply found macros' },
+          ] } },
+        ] },
+      });
+    }
+    events.push({ type: 'RUN_FINISHED', threadId: input.threadId, runId: input.runId });
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(''),
+    });
+  });
+
+  await openMacroQuest(page);
+  await askCopilot(page, 'Review a rice bowl.');
+  const applyButton = page.getByRole('button', { name: 'Apply found macros', exact: true });
+  await expect(applyButton).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(applyButton).toBeVisible();
+  await applyButton.scrollIntoViewIfNeeded();
+  const bounds = await applyButton.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+  await applyButton.click();
+  await expect(page.getByRole('button', { name: /Meal draft Catalog review bowl/ }))
+    .toContainText('200 kcal');
+  expect(applied).toBe(true);
+});
+
+test('completed sandbox grows to keep its apply button inside the iframe', async ({ page }) => {
+  await page.route('**/api/copilotkit/**', async (route) => {
+    const request = route.request();
+    if (request.method() !== 'POST' || !request.url().includes('/run')) {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        headers: { ...response.headers(), 'access-control-allow-origin': new URL(page.url()).origin },
+      });
+      return;
+    }
+    const input = request.postDataJSON();
+    const events = [
+      { type: 'RUN_STARTED', threadId: input.threadId, runId: input.runId },
+      { type: 'ACTIVITY_SNAPSHOT', messageId: 'swap-height-regression',
+        activityType: 'open-generative-ui', content: {
+          initialHeight: 160, generating: false,
+          css: '* { box-sizing: border-box; } body { margin: 0; }', cssComplete: true,
+          html: ["<section style='padding:16px'><div style='height:800px'>Swap controls</div><button id='applySwap'>Apply lighter version</button></section>"],
+          htmlComplete: true, jsFunctions: '', jsFunctionsComplete: true,
+          jsExpressions: [], jsExpressionsComplete: true,
+        } },
+      { type: 'RUN_FINISHED', threadId: input.threadId, runId: input.runId },
+    ];
+    await route.fulfill({
+      status: 200, contentType: 'text/event-stream',
+      body: events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(''),
+    });
+  });
+  await openMacroQuest(page);
+  await askCopilot(page, 'Suggest a lighter version of my current meal.');
+  const sandbox = page.frameLocator('[data-testid="open-generative-ui-final-sandbox"]');
+  const button = sandbox.getByRole('button', { name: 'Apply lighter version' });
+  await expect(button).toBeVisible();
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect.poll(() => button.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.bottom <= innerHeight && bounds.left >= 0 && bounds.right <= innerWidth;
+    })).toBe(true);
+  }
+});
+
 test('MacroQuest sample meal workflow updates trusted Angular state', async ({ page, request }) => {
   await expectRuntimeReady(request);
   const consoleErrors = collectConsoleErrors(page);
