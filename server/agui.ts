@@ -78,10 +78,17 @@ export function historyDigest(messages: Message[], limit: number): string {
 /**
  * Trusted Angular store state forwarded by the frontend via
  * connectAgentContext. This is what lets the model answer questions about
- * logged meals, goals, and remaining macros.
+ * logged meals, goals, and remaining macros. SDK sandbox context is retained.
  */
 export function contextBlock(context: Context[]): string {
   const lines = context
+    // Our prompts and response schemas define the custom agent's A2UI contract.
+    // The SDK's full catalog and render-tool protocol duplicate/conflict with it.
+    .filter(
+      (entry) =>
+        !entry.description.startsWith('A2UI Component Schema —') &&
+        !entry.description.startsWith('A2UI generation guidelines —'),
+    )
     .filter((entry) => entry.value.trim())
     .map((entry) => `- ${entry.description || 'context'}: ${entry.value}`);
 
