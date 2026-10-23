@@ -75,6 +75,10 @@ export const agent = new BuiltInAgent({
         return;
       }
 
+      if (messages.at(-1)?.role !== 'user') {
+        return;
+      }
+
       const intent = latestMessageHasImage(messages)
         ? 'analyze_meal'
         : await classifyIntent(messages, abortSignal);
@@ -90,11 +94,11 @@ export const agent = new BuiltInAgent({
           });
         } catch (error) {
           console.warn('Macro Swap Lab generation failed:', error);
-          yield textChunk(messageId, assistantCopy.swapLabFailed);
+          yield textChunk(randomUUID(), assistantCopy.swapLabFailed);
           return;
         }
 
-        yield textChunk(messageId, assistantCopy.swapLabReady);
+        yield textChunk(randomUUID(), assistantCopy.swapLabReady);
         return;
       }
 
@@ -109,7 +113,7 @@ export const agent = new BuiltInAgent({
           });
         } catch (error) {
           console.warn('Macro chart generation failed:', error);
-          yield textChunk(messageId, assistantCopy.chartFailed);
+          yield textChunk(randomUUID(), assistantCopy.chartFailed);
           return;
         }
 
