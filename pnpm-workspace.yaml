@@ -1,0 +1,2 @@
+patchedDependencies:
+  '@copilotkit/angular@0.6.0': patches/@copilotkit__angular@0.6.0.patch
