@@ -11,12 +11,13 @@ import {
   userImageUrl,
   userText,
 } from "./agui";
-import { maxOutputTokens } from "./config";
+import { maxOutputTokens, modelProvider } from "./config";
 import { completeJson } from "./model-client";
 import { buildMealUIPrompt } from "./prompts";
 import {
   mealUIResponseSchema,
   modelGeneratedMealUIResponseFormat,
+  openRouterMealUIResponseFormat,
   type A2UISurface,
   type MealItem,
   type MealUIResponse,
@@ -170,7 +171,10 @@ export async function generateMealUI(
     const generated = await completeJson({
       prompt: buildMealUIPrompt(prompt, history, contextBlock(context), validationFeedback),
       imageUrl,
-      responseFormat: modelGeneratedMealUIResponseFormat,
+      responseFormat:
+        modelProvider === "openrouter"
+          ? openRouterMealUIResponseFormat
+          : modelGeneratedMealUIResponseFormat,
       parser: mealUIResponseSchema,
       maxTokens: Math.min(maxOutputTokens, 3000),
       temperature: 0.15,

@@ -1,9 +1,9 @@
 /**
  * Model I/O contracts, in two matched halves:
  *
- * 1. llama.cpp `response_format` JSON schemas — compiled into grammars, so
- *    anything required here is structurally guaranteed at generation time.
- * 2. zod parsers mirroring those grammars — applied once at the client
+ * 1. `response_format` JSON schemas — compiled into provider grammars.
+ *    OpenRouter meal schemas omit costly array bounds; llama.cpp keeps them.
+ * 2. zod parsers enforcing runtime contracts, including array bounds — applied once at the client
  *    boundary so the rest of the server works with typed values and never
  *    re-checks shapes by hand.
  *
@@ -12,217 +12,222 @@
  */
 import { z } from 'zod';
 
-export const modelGeneratedMealUIResponseFormat = {
-  type: 'json_schema',
-  json_schema: {
-    name: 'macroquest_model_generated_meal_ui',
-    schema: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['mealDraft', 'a2ui'],
-      properties: {
-        mealDraft: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['title', 'source', 'notes', 'items'],
-          properties: {
-            title: { type: 'string' },
-            source: { type: 'string' },
-            notes: { type: 'string' },
-            items: {
-              type: 'array',
-              minItems: 1,
-              maxItems: 6,
+function createMealUIResponseFormat(constrainArrayLengths: boolean) {
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: 'macroquest_model_generated_meal_ui',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['mealDraft', 'a2ui'],
+        properties: {
+          mealDraft: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['title', 'source', 'notes', 'items'],
+            properties: {
+              title: { type: 'string' },
+              source: { type: 'string' },
+              notes: { type: 'string' },
               items: {
-                type: 'object',
-                additionalProperties: false,
-                required: [
-                  'name',
-                  'servingLabel',
-                  'servings',
-                  'calories',
-                  'protein',
-                  'carbs',
-                  'fat',
-                  'confidence',
-                ],
-                properties: {
-                  name: { type: 'string' },
-                  servingLabel: { type: 'string' },
-                  servings: { type: 'number' },
-                  calories: { type: 'number' },
-                  protein: { type: 'number' },
-                  carbs: { type: 'number' },
-                  fat: { type: 'number' },
-                  confidence: { type: 'number' },
+                type: 'array',
+                ...(constrainArrayLengths ? { minItems: 1, maxItems: 6 } : {}),
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: [
+                    'name',
+                    'servingLabel',
+                    'servings',
+                    'calories',
+                    'protein',
+                    'carbs',
+                    'fat',
+                    'confidence',
+                  ],
+                  properties: {
+                    name: { type: 'string' },
+                    servingLabel: { type: 'string' },
+                    servings: { type: 'number' },
+                    calories: { type: 'number' },
+                    protein: { type: 'number' },
+                    carbs: { type: 'number' },
+                    fat: { type: 'number' },
+                    confidence: { type: 'number' },
+                  },
                 },
               },
             },
           },
-        },
-        a2ui: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['surfaceId', 'components', 'data'],
-          properties: {
-            surfaceId: { type: 'string' },
-            components: {
-              type: 'array',
-              minItems: 4,
-              // A 6-item meal with per-item rows needs ~33 components; a cap
-              // that is too tight makes the grammar drop definitions that are
-              // still referenced, which fails structural validation.
-              maxItems: 40,
-              // Per-component-type variants: llama.cpp turns this schema into
-              // a grammar, so requiring `text` on Text and `children` on
-              // Row/Column here prevents a small model from ever emitting the
-              // invalid trees the validator would otherwise reject.
-              items: {
-                anyOf: [
-                  {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['id', 'component', 'text'],
-                    properties: {
-                      id: { type: 'string' },
-                      component: { const: 'Text' },
-                      text: { type: 'string', minLength: 1 },
-                      variant: {
-                        type: 'string',
-                        enum: ['h1', 'h2', 'h3', 'h4', 'h5', 'caption', 'body'],
+          a2ui: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['surfaceId', 'components', 'data'],
+            properties: {
+              surfaceId: { type: 'string' },
+              components: {
+                type: 'array',
+                // A 6-item meal with per-item rows needs ~33 components; a cap
+                // that is too tight makes the grammar drop definitions that are
+                // still referenced, which fails structural validation.
+                ...(constrainArrayLengths ? { minItems: 4, maxItems: 40 } : {}),
+                // Per-component-type variants: llama.cpp turns this schema into
+                // a grammar, so requiring `text` on Text and `children` on
+                // Row/Column here prevents a small model from ever emitting the
+                // invalid trees the validator would otherwise reject.
+                items: {
+                  anyOf: [
+                    {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['id', 'component', 'text'],
+                      properties: {
+                        id: { type: 'string' },
+                        component: { const: 'Text' },
+                        text: { type: 'string', minLength: 1 },
+                        variant: {
+                          type: 'string',
+                          enum: ['h1', 'h2', 'h3', 'h4', 'h5', 'caption', 'body'],
+                        },
                       },
                     },
-                  },
-                  {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['id', 'component', 'children'],
-                    properties: {
-                      id: { type: 'string' },
-                      component: { const: 'Row' },
-                      children: {
-                        type: 'array',
-                        minItems: 1,
-                        // Rows render on a ~380px chat panel; more than 4
-                        // children overflow, so the grammar forbids it.
-                        maxItems: 4,
-                        items: { type: 'string' },
-                      },
-                      align: {
-                        type: 'string',
-                        enum: ['start', 'center', 'end', 'stretch'],
-                      },
-                      justify: {
-                        type: 'string',
-                        enum: [
-                          'start',
-                          'center',
-                          'end',
-                          'spaceBetween',
-                          'spaceAround',
-                          'spaceEvenly',
-                        ],
-                      },
-                    },
-                  },
-                  {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['id', 'component', 'children'],
-                    properties: {
-                      id: { type: 'string' },
-                      component: { const: 'Column' },
-                      children: {
-                        type: 'array',
-                        minItems: 1,
-                        items: { type: 'string' },
-                      },
-                      align: {
-                        type: 'string',
-                        enum: ['start', 'center', 'end', 'stretch'],
-                      },
-                      justify: {
-                        type: 'string',
-                        enum: [
-                          'start',
-                          'center',
-                          'end',
-                          'spaceBetween',
-                          'spaceAround',
-                          'spaceEvenly',
-                        ],
+                    {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['id', 'component', 'children'],
+                      properties: {
+                        id: { type: 'string' },
+                        component: { const: 'Row' },
+                        children: {
+                          type: 'array',
+                          // Rows render on a ~380px chat panel; more than 4
+                          // children overflow. Zod also enforces this limit.
+                          ...(constrainArrayLengths ? { minItems: 1, maxItems: 4 } : {}),
+                          items: { type: 'string' },
+                        },
+                        align: {
+                          type: 'string',
+                          enum: ['start', 'center', 'end', 'stretch'],
+                        },
+                        justify: {
+                          type: 'string',
+                          enum: [
+                            'start',
+                            'center',
+                            'end',
+                            'spaceBetween',
+                            'spaceAround',
+                            'spaceEvenly',
+                          ],
+                        },
                       },
                     },
-                  },
-                  {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['id', 'component', 'child'],
-                    properties: {
-                      id: { type: 'string' },
-                      component: { const: 'Card' },
-                      child: { type: 'string' },
-                    },
-                  },
-                  {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['id', 'component', 'child', 'action'],
-                    properties: {
-                      id: { type: 'string' },
-                      component: { const: 'Button' },
-                      child: { type: 'string' },
-                      variant: {
-                        type: 'string',
-                        enum: ['primary', 'borderless'],
+                    {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['id', 'component', 'children'],
+                      properties: {
+                        id: { type: 'string' },
+                        component: { const: 'Column' },
+                        children: {
+                          type: 'array',
+                          minItems: 1,
+                          items: { type: 'string' },
+                        },
+                        align: {
+                          type: 'string',
+                          enum: ['start', 'center', 'end', 'stretch'],
+                        },
+                        justify: {
+                          type: 'string',
+                          enum: [
+                            'start',
+                            'center',
+                            'end',
+                            'spaceBetween',
+                            'spaceAround',
+                            'spaceEvenly',
+                          ],
+                        },
                       },
-                      action: {
-                        type: 'object',
-                        additionalProperties: false,
-                        required: ['event'],
-                        properties: {
-                          event: {
-                            type: 'object',
-                            additionalProperties: false,
-                            required: ['name'],
-                            properties: {
-                              name: { const: 'applyMealDraft' },
-                              context: {
-                                type: 'object',
-                                additionalProperties: true,
+                    },
+                    {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['id', 'component', 'child'],
+                      properties: {
+                        id: { type: 'string' },
+                        component: { const: 'Card' },
+                        child: { type: 'string' },
+                      },
+                    },
+                    {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['id', 'component', 'child', 'action'],
+                      properties: {
+                        id: { type: 'string' },
+                        component: { const: 'Button' },
+                        child: { type: 'string' },
+                        variant: {
+                          type: 'string',
+                          enum: ['primary', 'borderless'],
+                        },
+                        action: {
+                          type: 'object',
+                          additionalProperties: false,
+                          required: ['event'],
+                          properties: {
+                            event: {
+                              type: 'object',
+                              additionalProperties: false,
+                              required: ['name'],
+                              properties: {
+                                name: { const: 'applyMealDraft' },
+                                context: {
+                                  type: 'object',
+                                  additionalProperties: true,
+                                },
                               },
                             },
                           },
                         },
                       },
                     },
-                  },
-                  {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['id', 'component'],
-                    properties: {
-                      id: { type: 'string' },
-                      component: { const: 'Divider' },
-                      axis: {
-                        type: 'string',
-                        enum: ['horizontal', 'vertical'],
+                    {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['id', 'component'],
+                      properties: {
+                        id: { type: 'string' },
+                        component: { const: 'Divider' },
+                        axis: {
+                          type: 'string',
+                          enum: ['horizontal', 'vertical'],
+                        },
                       },
                     },
-                  },
-                ],
+                  ],
+                },
               },
-            },
-            data: {
-              type: 'object',
-              additionalProperties: true,
+              data: {
+                type: 'object',
+                additionalProperties: true,
+              },
             },
           },
         },
       },
     },
-  },
-} as const;
+  } as const;
+}
+
+export const modelGeneratedMealUIResponseFormat = createMealUIResponseFormat(true);
+
+// Google can reject bounded arrays of component variants as too many grammar
+// states. Keep the component shapes, but enforce array limits in Zod instead.
+export const openRouterMealUIResponseFormat = createMealUIResponseFormat(false);
 
 export const intentResponseFormat = {
   type: 'json_schema',
@@ -326,7 +331,19 @@ export const a2uiComponentSchema = z
       })
       .optional(),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((component, context) => {
+    if (
+      component.component === 'Row' &&
+      (!component.children || component.children.length < 1 || component.children.length > 4)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['children'],
+        message: 'Row must have between 1 and 4 children.',
+      });
+    }
+  });
 export type A2UIComponent = z.infer<typeof a2uiComponentSchema>;
 
 export const mealUIResponseSchema = z.object({
@@ -334,11 +351,11 @@ export const mealUIResponseSchema = z.object({
     title: z.string(),
     source: z.string(),
     notes: z.string(),
-    items: z.array(mealItemSchema).min(1),
+    items: z.array(mealItemSchema).min(1).max(6),
   }),
   a2ui: z.object({
     surfaceId: z.string(),
-    components: z.array(a2uiComponentSchema).min(1),
+    components: z.array(a2uiComponentSchema).min(4).max(40),
     data: z.record(z.string(), z.unknown()),
   }),
 });

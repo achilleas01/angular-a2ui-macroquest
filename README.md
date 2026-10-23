@@ -100,6 +100,12 @@ With `COPILOT_MODEL_PROVIDER=openrouter`, meal analysis still emits A2UI catalog
 trees (`cpk-a2ui-surface` in chat) and the lighter-swap sandbox still works —
 no local llama required.
 
+Meal analysis uses an OpenRouter-specific response schema without nested array
+length limits, which can exceed Google AI Studio's structured-output grammar
+state budget. Component shapes remain schema-constrained; the runtime validates
+1-6 meal items, 4-40 components, and 1-4 children per Row before emitting A2UI.
+Local llama.cpp keeps the array limits in its generation grammar.
+
 ## Runtime
 
 ```bash
@@ -213,6 +219,13 @@ Run the browser integration test:
 
 ```bash
 pnpm run test:integration
+```
+
+Run the runtime schema and transport tests without a live model:
+
+```bash
+COPILOT_MODEL_PROVIDER=local pnpm test:server
+COPILOT_MODEL_PROVIDER=openrouter OPENROUTER_API_KEY=test-key pnpm test:server
 ```
 
 Record and verify the real image workflow:
