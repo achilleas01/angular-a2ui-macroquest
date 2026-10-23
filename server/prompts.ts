@@ -136,7 +136,7 @@ const mealUIExample = {
 
 /**
  * Meal analysis: mealDraft JSON plus a model-authored A2UI surface.
- * The response format schema (in index.ts) enforces per-component structure;
+ * The response format schema enforces per-component structure;
  * this prompt covers layout guidance and the trusted/required pieces.
  */
 export function buildMealUIPrompt(
@@ -151,10 +151,11 @@ export function buildMealUIPrompt(
     history ? `Recent conversation:\n${history}` : '',
     "Analyze the meal and return JSON only. If a food image is attached, analyze the visible foods; otherwise estimate from the user's text description of what they ate.",
     'The JSON must include BOTH mealDraft and your own a2ui surface.',
-    'Meal draft rules: estimate conservatively and prefer distinct food groups (one item per food) over one generic item.',
+    'Meal draft rules: include 1 to 6 items, estimate conservatively and prefer distinct food groups (one item per food) over one generic item.',
     '',
     'A2UI surface rules — you design the layout yourself:',
     '- Use only these catalog components: Button, Card, Column, Divider, Row, Text.',
+    '- Include 4 to 40 components in total.',
     '- Components are FLAT: `child` / `children` reference other component ids. Never inline component objects.',
     '- Include exactly one component with id "root" (usually a Card whose child is your main Column).',
     '- The surface renders in a chat panel that can be as narrow as 380px. Never put more than 4 short Text components in one Row. Prefer one Row per food item (name left, calories right, justify "spaceBetween").',
