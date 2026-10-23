@@ -12,6 +12,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:server": "tsx --test tests/server/*.test.ts",
     "test:integration": "playwright test --config playwright.config.ts"
   },
   "private": true,
