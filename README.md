@@ -16,6 +16,11 @@ Install the dependencies via pnpm:
 pnpm install
 ```
 
+The pinned CopilotKit Angular SDK has a pnpm patch in `patches/` that fixes a
+sandbox auto-height initialization race. Without it, completed widgets can clip
+their apply button below the iframe. Restart the UI dev server after installing
+the patch so Angular does not keep serving the old prebundled SDK.
+
 Install llama.cpp to run the local Gemma 4 model server:
 
 ```bash
@@ -99,6 +104,11 @@ Relevant variables:
 With `COPILOT_MODEL_PROVIDER=openrouter`, meal analysis still emits A2UI catalog
 trees (`cpk-a2ui-surface` in chat) and the lighter-swap sandbox still works —
 no local llama required.
+
+For JSON completions, OpenRouter receives the same structured response schema
+without array upper bounds, which can exceed Gemini's schema constraint budget.
+Meal item, component, and row limits are still enforced by the runtime's Zod
+parser. Local llama.cpp schemas and streamed sandbox schemas are unchanged.
 
 ## Runtime
 
