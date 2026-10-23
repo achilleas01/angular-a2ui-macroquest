@@ -326,7 +326,11 @@ export const a2uiComponentSchema = z
       })
       .optional(),
   })
-  .passthrough();
+  .passthrough()
+  .refine(
+    (component) => component.component !== 'Row' || (component.children?.length ?? 0) <= 4,
+    'Rows must have at most 4 children.',
+  );
 export type A2UIComponent = z.infer<typeof a2uiComponentSchema>;
 
 export const mealUIResponseSchema = z.object({
@@ -334,11 +338,11 @@ export const mealUIResponseSchema = z.object({
     title: z.string(),
     source: z.string(),
     notes: z.string(),
-    items: z.array(mealItemSchema).min(1),
+    items: z.array(mealItemSchema).min(1).max(6),
   }),
   a2ui: z.object({
     surfaceId: z.string(),
-    components: z.array(a2uiComponentSchema).min(1),
+    components: z.array(a2uiComponentSchema).min(1).max(40),
     data: z.record(z.string(), z.unknown()),
   }),
 });
