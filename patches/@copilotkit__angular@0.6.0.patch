@@ -1,0 +1,17 @@
+diff --git a/dist/fesm2022/copilotkit-angular.mjs b/dist/fesm2022/copilotkit-angular.mjs
+index 4d7c00c1c109efc21f4f3439720960cea281d924..1da30efaf832db64fee8ae1078357a7fd4bc36e6 100644
+--- a/dist/fesm2022/copilotkit-angular.mjs
++++ b/dist/fesm2022/copilotkit-angular.mjs
+@@ -1971,6 +1971,12 @@ class CopilotOpenGenerativeUIRenderer {
+                 this.pendingQueue = [];
+                 for (const code of queue)
+                     void sandbox.run(code);
++                if (this.renderState().generatingDone && !this.heightMeasured) {
++                  this.heightMeasured = true;
++                  const cleanup = this.measureFinalHeight();
++                  if (cleanup)
++                    this.destroyRef.onDestroy(cleanup);
++                }
+             });
+         }
+         catch (error) {
