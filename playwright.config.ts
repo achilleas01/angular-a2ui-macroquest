@@ -14,13 +14,13 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'pnpm run start:runtime',
+      command: 'npm run start:runtime',
       url: 'http://127.0.0.1:3210/health',
       reuseExistingServer: true,
       timeout: 30_000,
     },
     {
-      command: 'pnpm run start:ui',
+      command: 'npm run start:ui',
       url: 'http://127.0.0.1:4302',
       reuseExistingServer: true,
       timeout: 60_000,

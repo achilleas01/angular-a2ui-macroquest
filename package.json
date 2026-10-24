@@ -7,8 +7,8 @@
     "start:ui": "ng serve --host 127.0.0.1 --port 4302",
     "start:runtime": "COPILOTKIT_TELEMETRY_DISABLED=true TMPDIR=/private/tmp tsx watch server/index.ts",
     "start:llama": "scripts/start-llama-server.sh",
-    "start:all": "concurrently -k -n llama,runtime,ui -c magenta,blue,green \"pnpm run start:llama\" \"pnpm run start:runtime\" \"pnpm run start:ui\"",
-    "start:all:openrouter": "COPILOT_MODEL_PROVIDER=openrouter concurrently -k -n runtime,ui -c blue,green \"pnpm run start:runtime\" \"pnpm run start:ui\"",
+    "start:all": "concurrently -k -n llama,runtime,ui -c magenta,blue,green \"npm run start:llama\" \"npm run start:runtime\" \"npm run start:ui\"",
+    "start:all:openrouter": "COPILOT_MODEL_PROVIDER=openrouter concurrently -k -n runtime,ui -c blue,green \"npm run start:runtime\" \"npm run start:ui\"",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -16,7 +16,10 @@
     "test:integration": "playwright test --config playwright.config.ts"
   },
   "private": true,
-  "packageManager": "pnpm@10.33.4",
+  "packageManager": "npm@10.9.8",
+  "overrides": {
+    "@copilotkit/a2ui-renderer": "1.62.3"
+  },
   "dependencies": {
     "@angular/cdk": "^22.0.0",
     "@angular/common": "^22.0.0",

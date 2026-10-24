@@ -23,6 +23,6 @@ and assistive-technology behavior for UI changes. Do not alter secrets, local
 model files, generated build output, or presentation assets unless the issue
 explicitly requires it.
 
-Before finishing, run `pnpm build`. Run focused tests relevant to the change
+Before finishing, run `npm run build`. Run focused tests relevant to the change
 when available. Do not start or download a model unless the issue explicitly
 requires live-model validation.

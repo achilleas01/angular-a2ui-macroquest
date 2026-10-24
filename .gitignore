@@ -46,7 +46,7 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-# Local CopilotKit tarballs (see pnpm-workspace.yaml overrides)
+# Local CopilotKit tarballs
 /.copilotkit-local/
 
 # Local secrets / provider config (see .env.example)
