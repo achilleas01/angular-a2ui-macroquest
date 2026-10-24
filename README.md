@@ -10,11 +10,18 @@ Angular renderer.
 
 ## Configuration
 
-Install the dependencies via pnpm:
+Use the Node.js version in `.nvmrc` and install dependencies with npm:
 
 ```bash
-pnpm install
+npm ci
 ```
+
+Use `npm install` when changing dependencies and commit `package-lock.json`.
+The project enables `legacy-peer-deps` in `.npmrc` because CopilotKit Angular
+and NgRx declare peer ranges below the Angular 22 version used by this demo.
+This setting applies to both `npm install` and `npm ci`.
+The A2UI renderer override preserves the previously locked version, whose
+web-component exports are required by `@copilotkit/angular@0.1.2`.
 
 Install llama.cpp to run the local Gemma 4 model server:
 
@@ -25,7 +32,7 @@ brew install llama.cpp
 Download the Gemma 4 model weights by starting llama.cpp:
 
 ```bash
-pnpm run start:llama
+npm run start:llama
 ```
 
 The script defaults to the Unsloth Gemma 4 26B-A4B MoE QAT GGUF on Hugging Face.
@@ -47,7 +54,7 @@ To use a GGUF you already have on disk instead of downloading from Hugging Face:
 LLAMA_MODEL=/path/to/your-model.gguf \
 LLAMA_MMPROJ_PATH=/path/to/mmproj-F16.gguf \
 LLAMA_ALIAS=your-model-alias \
-pnpm run start:llama
+npm run start:llama
 ```
 
 `LLAMA_MMPROJ_PATH` is only needed for the local-file override when you want
@@ -61,13 +68,13 @@ If Hugging Face requires authentication for a selected repo or file, export
 Run llama.cpp, the CopilotKit runtime, and the Angular app in one terminal:
 
 ```bash
-pnpm run start:all
+npm run start:all
 ```
 
 Then open `http://127.0.0.1:4302`. Ctrl+C stops all three processes.
 
-You can still start them separately with `pnpm run start:llama`,
-`pnpm run start:runtime`, and `pnpm run start:ui`.
+You can still start them separately with `npm run start:llama`,
+`npm run start:runtime`, and `npm run start:ui`.
 
 ## OpenRouter (same agentic UI, remote model)
 
@@ -85,7 +92,7 @@ cp .env.example .env
 Then run:
 
 ```bash
-pnpm run start:all:openrouter
+npm run start:all:openrouter
 ```
 
 Relevant variables:
@@ -112,7 +119,7 @@ Local llama.cpp keeps the array limits in its generation grammar.
 LOCAL_MODEL_BASE_URL=http://127.0.0.1:8080/v1 \
 LOCAL_MODEL_NAME=gemma-4-26b-a4b-it-qat \
 LOCAL_MODEL_API_KEY=local-llama \
-pnpm run start:runtime
+npm run start:runtime
 ```
 
 The runtime also defaults to these Gemma 4 settings, so the explicit env vars
@@ -142,7 +149,7 @@ the model-authored behavior in `@jetbrains/websandbox`.
 ## Angular App
 
 ```bash
-pnpm run start:ui
+npm run start:ui
 ```
 
 Open `http://127.0.0.1:4302`.
@@ -212,20 +219,20 @@ wiring. The Open Generative UI sandbox bridge lives in `macroquest-sandbox.ts`.
 Build the app:
 
 ```bash
-pnpm run build
+npm run build
 ```
 
 Run the browser integration test:
 
 ```bash
-pnpm run test:integration
+npm run test:integration
 ```
 
 Run the runtime schema and transport tests without a live model:
 
 ```bash
-COPILOT_MODEL_PROVIDER=local pnpm test:server
-COPILOT_MODEL_PROVIDER=openrouter OPENROUTER_API_KEY=test-key pnpm test:server
+COPILOT_MODEL_PROVIDER=local npm run test:server
+COPILOT_MODEL_PROVIDER=openrouter OPENROUTER_API_KEY=test-key npm run test:server
 ```
 
 Record and verify the real image workflow:
@@ -240,5 +247,5 @@ model-generated A2UI tool payload.
 Print the model server command without downloading:
 
 ```
-pnpm run start:llama -- --dry-run
+npm run start:llama -- --dry-run
 ```
