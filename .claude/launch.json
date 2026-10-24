@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "macroquest-ui",
-      "runtimeExecutable": "pnpm",
+      "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start:ui"],
       "port": 4200
     }

@@ -55,7 +55,7 @@ Runtime pairing:
   LOCAL_MODEL_BASE_URL=http://127.0.0.1:8080/v1
   LOCAL_MODEL_NAME=gemma-4-26b-a4b-it-qat
   LOCAL_MODEL_API_KEY=local-llama
-  pnpm run start:runtime
+  npm run start:runtime
 USAGE
 }
 
