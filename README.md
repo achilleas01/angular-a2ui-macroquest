@@ -242,3 +242,41 @@ Print the model server command without downloading:
 ```
 pnpm run start:llama -- --dry-run
 ```
+
+## Production deployment (Docker)
+
+`docker compose up -d --build` starts two services:
+
+| Service   | Image                          | Role                                                  |
+| --------- | ------------------------------ | ----------------------------------------------------- |
+| `web`     | `Dockerfile.web` (nginx)       | Serves the Angular build, proxies `/api/*` (SSE-safe) |
+| `runtime` | `Dockerfile.runtime` (Node 22) | Hono + CopilotKit runtime, internal only              |
+
+Only `web` is published (`WEB_PORT`, default 80); put TLS in front of it. The
+browser calls the relative `/api/copilotkit`, so no CORS is needed. In
+`pnpm start:ui` the same path is forwarded to the runtime by `proxy.conf.json`.
+
+The model runs outside Docker. Choose one provider:
+
+**LM Studio (default).** Start the LM Studio server on port 1234 and load the
+model with a context length of at least 32768 (the MacroQuest prompts do not fit
+in 8192):
+
+```bash
+lms load google/gemma-4-e4b --context-length 32768
+MODEL_NAME=google/gemma-4-e4b docker compose up -d --build
+```
+
+`MODEL_BASE_URL` defaults to `http://host.docker.internal:1234/v1`.
+
+**OpenRouter.** Set `OPENROUTER_API_KEY` (and optionally `OPENROUTER_MODEL`) in
+`.env`, then:
+
+```bash
+COPILOT_MODEL_PROVIDER=openrouter docker compose up -d --build
+```
+
+Runtime hardening variables: `CORS_ORIGINS`, `RATE_LIMIT_MAX` /
+`RATE_LIMIT_WINDOW_MS` (per client IP), `RUNTIME_AUTH_TOKEN` (bearer token; set
+`RUNTIME_AUTH_HEADER="Bearer <token>"` so nginx injects it), `HOST`, `PORT`.
+Run the runtime without Docker via `pnpm run start:runtime:prod`.
