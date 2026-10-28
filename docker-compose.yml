@@ -1,0 +1,41 @@
+# Two services: web (nginx + Angular build) -> runtime (Hono/CopilotKit) -> model provider.
+# The model runs outside Docker, either LM Studio on the host or OpenRouter:
+#   LM Studio (default):  MODEL_NAME=google/gemma-4-e4b docker compose up -d --build
+#   OpenRouter:           COPILOT_MODEL_PROVIDER=openrouter docker compose up -d --build
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "${WEB_PORT:-80}:80"
+    environment:
+      RUNTIME_UPSTREAM: http://runtime:3210
+      # Optional: injected by the proxy so the secret never ships to the browser.
+      RUNTIME_AUTH_HEADER: ${RUNTIME_AUTH_HEADER:-}
+    depends_on:
+      runtime:
+        condition: service_healthy
+    restart: unless-stopped
+
+  runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile.runtime
+    expose:
+      - "3210"
+    environment:
+      # "local" = LM Studio (OpenAI-compatible server), "openrouter" = OpenRouter.
+      COPILOT_MODEL_PROVIDER: ${COPILOT_MODEL_PROVIDER:-local}
+      LOCAL_MODEL_BASE_URL: ${MODEL_BASE_URL:-http://host.docker.internal:1234/v1}
+      LOCAL_MODEL_NAME: ${MODEL_NAME:-google/gemma-4-e4b}
+      LOCAL_MODEL_API_KEY: ${LMSTUDIO_API_KEY:-lm-studio}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-30}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RUNTIME_AUTH_TOKEN: ${RUNTIME_AUTH_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

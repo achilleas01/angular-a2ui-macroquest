@@ -1,0 +1,14 @@
+FROM node:22-slim AS build
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm build
+
+FROM nginx:1.27-alpine
+ENV RUNTIME_UPSTREAM=http://runtime:3210 \
+    RUNTIME_AUTH_HEADER=""
+COPY deploy/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /app/dist/angular-a2ui-macroquest/browser /usr/share/nginx/html
+EXPOSE 80
