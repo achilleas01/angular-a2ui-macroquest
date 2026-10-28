@@ -13,7 +13,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideCopilotKit({
-      runtimeUrl: 'http://127.0.0.1:3210/api/copilotkit',
+      runtimeUrl: '/api/copilotkit',
       licenseKey: 'ck_pub_00000000000000000000000000000000',
       a2ui: {
         includeSchema: true,

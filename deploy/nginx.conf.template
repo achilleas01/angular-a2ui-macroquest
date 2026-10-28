@@ -1,0 +1,38 @@
+server {
+  listen 80;
+  root /usr/share/nginx/html;
+  index index.html;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+
+  location = /health {
+    proxy_pass ${RUNTIME_UPSTREAM}/health;
+  }
+
+  # AG-UI streams over SSE: no buffering, long read timeout.
+  location /api/ {
+    proxy_pass ${RUNTIME_UPSTREAM};
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Authorization "${RUNTIME_AUTH_HEADER}";
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+    client_max_body_size 20m;
+  }
+
+  location ~* \.(js|css|woff2?|jpg|png|ico|svg)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    try_files $uri =404;
+  }
+
+  location / {
+    add_header Cache-Control "no-cache";
+    try_files $uri $uri/ /index.html;
+  }
+}

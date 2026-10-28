@@ -60,3 +60,18 @@ export const modelApiKey =
 process.env.OPENAI_BASE_URL = modelBaseUrl;
 
 export const completionUrl = `${modelBaseUrl.replace(/\/$/, "")}/chat/completions`;
+
+/** Browser origins allowed to call the runtime directly (empty = same-origin only via the proxy). */
+export const corsOrigins = (
+  process.env.CORS_ORIGINS ?? "http://127.0.0.1:4302,http://localhost:4302"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+/** Per-client request budget for /api/copilotkit. Set RATE_LIMIT_MAX=0 to disable. */
+export const rateLimitMax = Number(process.env.RATE_LIMIT_MAX ?? 30);
+export const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000);
+
+/** Optional shared secret; when set, /api/copilotkit requires `Authorization: Bearer <token>`. */
+export const runtimeAuthToken = process.env.RUNTIME_AUTH_TOKEN?.trim() ?? "";

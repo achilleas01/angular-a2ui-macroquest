@@ -15,7 +15,18 @@ import {
   InMemoryAgentRunner,
 } from '@copilotkit/runtime/v2';
 import { agent, macroQuestA2UIToolName } from './agent';
-import { modelBaseUrl, modelName, modelProvider, port } from './config';
+import { bearerAuth } from 'hono/bearer-auth';
+import {
+  corsOrigins,
+  modelBaseUrl,
+  modelName,
+  modelProvider,
+  port,
+  rateLimitMax,
+  rateLimitWindowMs,
+  runtimeAuthToken,
+} from './config';
+import { rateLimit } from './rate-limit';
 
 const basicA2UICatalogId = 'https://a2ui.org/specification/v0_9/basic_catalog.json';
 
@@ -35,7 +46,7 @@ const app = new Hono();
 app.use(
   '*',
   cors({
-    origin: ['http://127.0.0.1:4302', 'http://localhost:4302'],
+    origin: corsOrigins,
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
     allowHeaders: [
       'Content-Type',
@@ -60,6 +71,13 @@ app.get('/health', (c) =>
   }),
 );
 
+app.use('/api/copilotkit/*', rateLimit(rateLimitMax, rateLimitWindowMs));
+if (runtimeAuthToken) {
+  app.use('/api/copilotkit/*', async (c, next) =>
+    c.req.method === 'OPTIONS' ? next() : bearerAuth({ token: runtimeAuthToken })(c, next),
+  );
+}
+
 const copilotHandler = createCopilotRuntimeHandler({
   runtime,
   basePath: '/api/copilotkit',
@@ -67,7 +85,15 @@ const copilotHandler = createCopilotRuntimeHandler({
 
 app.all('/api/copilotkit/*', (c) => copilotHandler(c.req.raw));
 
-const server = serve({ fetch: app.fetch, port });
+const hostname = process.env.HOST?.trim() || '127.0.0.1';
+const server = serve({ fetch: app.fetch, port, hostname });
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 5_000).unref();
+  });
+}
 server.on('error', (error: NodeJS.ErrnoException) => {
   if (error.code === 'EADDRINUSE') {
     console.error(
@@ -79,7 +105,7 @@ server.on('error', (error: NodeJS.ErrnoException) => {
   throw error;
 });
 
-console.log(`MacroQuest runtime listening at http://127.0.0.1:${port}/api/copilotkit`);
+console.log(`MacroQuest runtime listening at http://${hostname}:${port}/api/copilotkit`);
 console.log(`Model provider: ${modelProvider} (custom MacroQuest agent → A2UI / sandbox)`);
 console.log(`Model endpoint: ${modelBaseUrl}`);
 console.log(`Model name: ${modelName}`);
