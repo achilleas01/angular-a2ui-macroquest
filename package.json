@@ -6,6 +6,7 @@
     "start": "ng serve --host 127.0.0.1 --port 4302",
     "start:ui": "ng serve --host 127.0.0.1 --port 4302",
     "start:runtime": "COPILOTKIT_TELEMETRY_DISABLED=true TMPDIR=/private/tmp tsx watch server/index.ts",
+    "start:runtime:prod": "tsx server/index.ts",
     "start:llama": "scripts/start-llama-server.sh",
     "start:all": "concurrently -k -n llama,runtime,ui -c magenta,blue,green \"pnpm run start:llama\" \"pnpm run start:runtime\" \"pnpm run start:ui\"",
     "start:all:openrouter": "COPILOT_MODEL_PROVIDER=openrouter concurrently -k -n runtime,ui -c blue,green \"pnpm run start:runtime\" \"pnpm run start:ui\"",
@@ -33,6 +34,7 @@
     "hono": "^4.12.15",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "tsx": "^4.21.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -48,7 +50,6 @@
     "postcss": "^8.5.15",
     "prettier": "^3.7.4",
     "tailwindcss": "^4.3.1",
-    "tsx": "^4.21.0",
     "typescript": "~6.0.2"
   }
 }

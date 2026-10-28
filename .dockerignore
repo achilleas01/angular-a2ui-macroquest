@@ -1,0 +1,8 @@
+node_modules
+dist
+.angular
+.git
+.env
+test-results
+tests
+docs
